@@ -8,6 +8,7 @@ mu = -0.05
 sigma = 0.05
 S0 = 10
 H = 0.9*S0
+K = 0.8*S0
 
 def simulate_St(S0, dt):
     n = int(T/dt)+1
@@ -32,6 +33,16 @@ def plot_St(S0, dt, N):
     plt.ylabel('Asset price')
     plt.show()
 
+def payoff_down_and_out(St):
+    n, = St.shape
+    for k in range(n):
+        if St[k] < H:
+            return 0
+
+    return max(St[-1]-K, 0)
+
+
 if __name__ == '__main__':
     St = simulate_St(10, 0.1)
-    plot_St(S0, 0.1, 100)
+    print(payoff_down_and_out(St))
+    # plot_St(S0, 0.1, 100)
