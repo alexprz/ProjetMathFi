@@ -15,7 +15,9 @@ def compute_mean(new_value, n, previous_mean):
 
 def compute_std(new_value, n, previous_std, previous_mean):
     new_mean = compute_mean(new_value, n, previous_mean)
-    return (n+1)*(n-1)/(n**2)*previous_std + (n+1)*(new_mean-previous_mean)**2 + (new_value-new_mean)**2
+    if n == 1:
+        return new_value
+    return (n-2)/(n-1)*previous_std+(previous_mean-new_mean)**2+1./(n-1)*(new_value-new_mean)**2
 
 def simulate_St(dt):
     n = int(T/dt)+1
@@ -66,7 +68,7 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=0.000001, show=False):
     payoffs = []
     St_list = []
     mean_n = -1
-    std_n = -1
+    std_n = 0
     count = 0
 
     while count < N_max:
@@ -79,14 +81,15 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=0.000001, show=False):
         # mean_n = 1/(count+1)*(count*mean_n + payoff)
         mean_n = compute_mean(payoff, count+1, mean_n)
         std_n = compute_std(payoff, count+1, std_p, mean_p)
+        var = np.var(payoffs, ddof=1)
 
         count += 1
         # if count >= N_min and abs(mean_n - mean_p) < eps:
-        print('{} {}'.format(mean_n, std_n))
-        if count >= N_min and 1.96*std_n/np.sqrt(count) < eps:
+        print('{} {} {}'.format(mean_n, std_n, 1.96*np.sqrt(std_n)/np.sqrt(count)))
+        if count >= N_min and 1.96*np.sqrt(std_n)/np.sqrt(count) < eps:
 
             # print('Delta mean : {}'.format(abs(mean_n - mean_p)))
-            print('Error : {}'.format(1.96*std_n/np.sqrt(count)))
+            print('Error : {}'.format(1.96*np.sqrt(std_n)/np.sqrt(count)))
             break
 
     if show:
@@ -111,5 +114,5 @@ if __name__ == '__main__':
     # St = simulate_St(0.1)
     # print(payoff_down_and_out(St))
     # plot_St(S0, 0.1, 100)
-    print(monte_carlo(dt=0.1, N_max=100000, show=False, eps=0.000001))
+    print(monte_carlo(dt=0.1, N_max=10000000, show=False, eps=0.05))
     # convergence_speed_function_of_dt(0.01, 0.1, 10)
