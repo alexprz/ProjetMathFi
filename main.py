@@ -1,10 +1,13 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
 # Parameters
 T = 1.
 r = 0.03
 mu = -0.05
 sigma = 0.05
+S0 = 10
+H = 0.9*S0
 
 def simulate_St(S0, dt):
     n = int(T/dt)+1
@@ -17,5 +20,18 @@ def simulate_St(S0, dt):
 
     return St
 
+def plot_St(S0, dt, N):
+
+    X = [k*dt for k in range(int(T/dt)+1)]
+    for k in range(N):
+        St = simulate_St(S0, dt)
+        plt.plot(X, St)
+
+
+    plt.xlabel('t')
+    plt.ylabel('Asset price')
+    plt.show()
+
 if __name__ == '__main__':
-    print(simulate_St(10, 0.1))
+    St = simulate_St(10, 0.1)
+    plot_St(S0, 0.1, 100)
