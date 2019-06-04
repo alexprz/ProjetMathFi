@@ -66,8 +66,16 @@ def plot_St_list(St_list, dt):
     plt.ylabel('Asset price')
     plt.show()
 
+# def payoff_down_and_out(St):
+#     n, = St.shape
+#     for k in range(n):
+#         if St[k] < H:
+#             return 0
+
+#     return max(St[-1]-K, 0)
+
 def payoff_down_and_out(St):
-    n, = St.shape
+    return int(not (St<H).any() == True)*max(St[-1]-K, 0)
     for k in range(n):
         if St[k] < H:
             return 0
