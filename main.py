@@ -119,10 +119,10 @@ def is_activated(St, H=H):
     return not (St<H).any()
 
 def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False):
-    payoffs = []
-    St_list = []
-    means = []
-    stds = []
+    # payoffs = []
+    # St_list = []
+    # means = []
+    # stds = []
     mean_n = 0
     std_n = 0
     count = 0
@@ -132,10 +132,10 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False)
     while count < N_max:
         St, St_antithetic = simulate_St(dt, antithetic=True)
         # St = simulate_St(dt)
-        St_list.append(St)
+        # St_list.append(St)
         payoff = payoff_down_and_out(St)
         payoff_antithetic = payoff_down_and_out(St_antithetic)
-        payoffs.append(payoff)
+        # payoffs.append(payoff)
         # mean_n = 1/(count+1)*(count*mean_n + payoff)
         mean_p = mean_n
         std_p = std_n
@@ -143,8 +143,8 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False)
         # std_n = compute_std(payoff, count+1, std_p, mean_p)
         mean_n = compute_mean((payoff+payoff_antithetic)/2., count+1, mean_n)
         std_n = compute_std((payoff+payoff_antithetic)/2., count+1, std_p, mean_p)
-        means.append(mean_n)
-        stds.append(np.sqrt(std_n))
+        # means.append(mean_n)
+        # stds.append(np.sqrt(std_n))
         # count += 1
         # mean_p = mean_n
         # std_p = std_n
@@ -174,21 +174,21 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False)
     # print('True mean : {}'.format(np.mean(payoffs)))
     # print(stats_St_list(St_list, dt))
 
-    X = range(len(means))
-    plt.plot(X, means, label='Monte Carlo')
-    plt.plot(X, analytic_price*np.ones(len(means)), label='Black-Scholes')
-    plt.xlabel('Nombre d\'itérations')
-    plt.ylabel('Payoff moyen')
-    plt.legend()
-    plt.show()
+    # X = range(len(means))
+    # plt.plot(X, means, label='Monte Carlo')
+    # plt.plot(X, analytic_price*np.ones(len(means)), label='Black-Scholes')
+    # plt.xlabel('Nombre d\'itérations')
+    # plt.ylabel('Payoff moyen')
+    # plt.legend()
+    # plt.show()
 
-    X = range(len(stds))
-    plt.plot(X, stds)
-    plt.xlabel('Nombre d\'itérations')
-    plt.ylabel('Écart type')
-    plt.show()
+    # X = range(len(stds))
+    # plt.plot(X, stds)
+    # plt.xlabel('Nombre d\'itérations')
+    # plt.ylabel('Écart type')
+    # plt.show()
 
-    print(means[0])
+    # print(means[0])
 
     relative_error = 100*abs(mean_n-analytic_price)/analytic_price
     return mean_n, np.sqrt(std_n), count, relative_error
@@ -327,6 +327,25 @@ def analytic_price_down_and_out3(S0=S0, H=H):
 
     return C
 
+def analytic_price_down_and_out4(S0=S0, H=H, K=K):
+    lbd = (r+(sigma**2)/2)/(sigma**2)
+    x = (np.log(H**2/(S0*K))+(r-(sigma**2)/2)*T)/(sigma*np.sqrt(T))
+
+    Cin =  S0*(H/S0)**(2*lbd)*norm.cdf(x) - K*np.exp(-r*T)*(H/S0)**(2*lbd-2)*norm.cdf(x-sigma*np.sqrt(T))
+    C = analytic_call_vanilla(S0=S0, K=K)
+    Cout = C - Cin
+
+    return Cout
+
+def analytic_call_vanilla(S0=S0, K=K):
+    d1 = (np.log(S0/K) + (r + (sigma**2)/2)*T)/(sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+
+    n1 = norm.cdf(d1)
+    n2 = norm.cdf(d2)
+
+    return S0*n1 - K*np.exp(-r*T)*n2
+
 def analytic_price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     X = np.linspace(r_min, r_max, N)
     Y1 = []
@@ -334,7 +353,7 @@ def analytic_price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
 
     for r in X:
         H = S0*r
-        price = analytic_price_down_and_out3(S0=S0, H=H)
+        price = analytic_price_down_and_out4(S0=S0, H=H)
         print(price)
         Y1.append(price)
         St_list = simulate_St_list(dt, N_simulation, S0=S0)
@@ -349,6 +368,7 @@ def analytic_price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     # plt.title('Influence of H/S0 over mean payoff')
     plt.legend()
     plt.show()
+
 
 if __name__ == '__main__':
     dt = 0.001
@@ -367,6 +387,6 @@ if __name__ == '__main__':
     # convergence_speed_function_of_dt(0.01, 0.1, 10, eps=0.0001)
     # print(monte_carlo(dt=0.001, N_max=250000))
     # print(monte_carlo(dt=0.01, N_max=1000000, eps=0.005))
-    # convergence_function_of_dt(0.1, 0.001, 4, eps=0.01, analytic_criterion=True)
+    # convergence_function_of_dt(0.1, 0.0001, 20, eps=0.01, analytic_criterion=False)
     # print(analytic_price_down_and_out())
     analytic_price_function_of_H(0, 1, 100, dt, N_simulation=10000)
