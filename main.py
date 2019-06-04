@@ -8,7 +8,7 @@ r = 0.1
 mu = -0.05
 sigma = 0.2
 S0 = 50
-H = 30
+H = 45
 K = 50
 
 def compute_mean(new_value, n, previous_mean):
@@ -20,7 +20,7 @@ def compute_std(new_value, n, previous_std, previous_mean):
         return new_value
     return (n-2)/(n-1)*previous_std+(previous_mean-new_mean)**2+1./(n-1)*(new_value-new_mean)**2
 
-def simulate_St(dt, S0=S0):
+def simulate_St(dt, S0=S0, antithetic=False):
     n = int(T/dt)+1
     # St = np.zeros(n)
     # St[0] = S0
@@ -32,10 +32,18 @@ def simulate_St(dt, S0=S0):
     # return St
 
     eps = np.random.normal(size=n)
-    increases = 1+mu*dt + np.sqrt(dt)*eps
+    increases = 1+mu*dt + sigma*np.sqrt(dt)*eps
+    # increases = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*eps)
     increases[0] = S0
 
-    return np.cumprod(increases)
+    if not antithetic:
+        return np.cumprod(increases)
+
+    increases_antithetic = 1+mu*dt + sigma*np.sqrt(dt)*(-eps)
+    # increases_antithetic = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*(-eps))
+    increases_antithetic[0] = S0
+
+    return np.cumprod(increases), np.cumprod(increases_antithetic)
 
 def simulate_St_list(dt, N, S0=S0):
     n = int(T/dt)+1
@@ -117,21 +125,29 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None):
     count = 0
 
     while count < N_max:
-        St = simulate_St(dt)
+        St, St_antithetic = simulate_St(dt, antithetic=True)
         # St_list.append(St)
         payoff = payoff_down_and_out(St)
+        payoff_antithetic = payoff_down_and_out(St_antithetic)
         # payoffs.append(payoff)
+        # mean_n = 1/(count+1)*(count*mean_n + payoff)
         mean_p = mean_n
         std_p = std_n
-        # mean_n = 1/(count+1)*(count*mean_n + payoff)
-        mean_n = compute_mean(payoff, count+1, mean_n)
-        std_n = compute_std(payoff, count+1, std_p, mean_p)
+        # mean_n = compute_mean(payoff, count+1, mean_n)
+        # std_n = compute_std(payoff, count+1, std_p, mean_p)
+        mean_n = compute_mean((payoff+payoff_antithetic)/2., count+1, mean_n)
+        std_n = compute_std((payoff+payoff_antithetic)/2., count+1, std_p, mean_p)
+        # count += 1
+        # mean_p = mean_n
+        # std_p = std_n
+        # mean_n = compute_mean(payoff_antithetic, count+1, mean_n)
+        # std_n = compute_std(payoff_antithetic, count+1, std_p, mean_p)
         # var = np.var(payoffs, ddof=1)
         # print('{} {}'.format(std_n, var))
 
         count += 1
         # if count >= N_min and abs(mean_n - mean_p) < eps:
-        print('{0:} {1:.2f} {2:.2f}'.format(count, mean_n, std_n))#, 1.96*np.sqrt(std_n)/np.sqrt(count)))
+        print('{0:} {1:.2f} {2:.2f} {3:.2f}'.format(count, mean_n, std_n, 1.96*np.sqrt(std_n)/np.sqrt(count)))
         # if count >= N_min and 1.96*np.sqrt(std_n)/np.sqrt(count) < eps:
         # if count >= N_min and eps != None and abs(mean_n - mean_p) < eps:
 
@@ -146,7 +162,7 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None):
     # print('True mean : {}'.format(np.mean(payoffs)))
     # print(stats_St_list(St_list, dt))
 
-    return mean_n, std_n
+    return mean_n, np.sqrt(std_n)
 
 def monte_carlo_fixed(dt, N_max=100000, S0=S0, H=H):
     St_list = simulate_St_list(dt, N_max, S0=S0)
@@ -204,14 +220,16 @@ def payoff_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
 if __name__ == '__main__':
     dt = 0.01
     # St = simulate_St(dt)
+    # St, St_antithetic = simulate_St(dt, antithetic=True)
+    # plot_St_list([St, St_antithetic], dt)
     # print(payoff_down_and_out(St))
-    # St_list = simulate_St_list(dt, 1000)
+    # St_list = simulate_St_list(dt, 10000)
     # print(stats_St_list(St_list, dt))
     # payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
-    # stats_function_of_dt(0.1, 0.00001, 100, N_simulation=10000)
+    # stats_function_of_dt(1, 0.0001, 200, N_simulation=10000)
     # plot_St_list(St_list, dt)
     # print(monte_carlo(dt=0.0001, N_max=10, show=True, eps=0.0001))
     # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
     # print(monte_carlo(dt=0.1, N_max=20, show=True, eps=0.5))
     # convergence_speed_function_of_dt(0.01, 0.1, 10, eps=0.0001)
-    monte_carlo(dt=0.0001, N_max=1000000)
+    print(monte_carlo(dt=0.001, N_max=250000))
