@@ -231,11 +231,11 @@ def convergence_function_of_dt(dt_min, dt_max, N, eps=0.01):
     plt.show()
 
 def analytic_price_down_and_out(S0=S0, H=H):
-    a = (H/S0)**(-1+2*r/(sigma)**2)
-    b = (H/S0)**(1+2*r/(sigma)**2)
+    a = (H/S0)**(-1+2*r/(sigma**2))
+    b = (H/S0)**(1+2*r/(sigma**2))
 
-    alpha_p = r + sigma**2/2
-    alpha_m = r - sigma**2/2
+    alpha_p = r + (sigma**2)/2
+    alpha_m = r - (sigma**2)/2
 
     d1 = (np.log(S0/K) + alpha_p*T)/(sigma*np.sqrt(T))
     d2 = (np.log(S0/K) + alpha_m*T)/(sigma*np.sqrt(T))
@@ -257,7 +257,9 @@ def analytic_price_down_and_out(S0=S0, H=H):
 
     P = K*np.exp(-r*T)*(n4-n2-a*(n7-n5))-S0*(n3-n1-b*(n8-n6))
 
-    return P
+    C = P + S0 - K*np.exp(-r*T)
+
+    return C
 
 
 if __name__ == '__main__':
