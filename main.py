@@ -158,14 +158,31 @@ def convergence_speed_function_of_dt(dt_min, dt_max, N, eps):
     plt.ylabel('Nb iterations')
     plt.show()
 
+def stats_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
+    X = np.linspace(dt_min, dt_max, N)
+    Y = []
+
+    for dt in X:
+        St_list = simulate_St_list(dt, N_simulation)
+        stats = stats_St_list(St_list, dt)
+        print(stats['percent_activated'])
+        Y.append(stats['percent_activated'])
+
+    plt.plot(X, Y)
+    plt.xlabel('dt')
+    plt.ylabel('Percent activated')
+    plt.title('Influence of dt over activation %')
+    plt.show()
+
 
 
 if __name__ == '__main__':
     dt = 0.0001
     St = simulate_St(dt)
     print(payoff_down_and_out(St))
-    St_list = simulate_St_list(dt, 10000)
-    print(stats_St_list(St_list, dt))
+    # St_list = simulate_St_list(dt, 10000)
+    # print(stats_St_list(St_list, dt))
+    stats_function_of_dt(0.1, 0.00001, 100, N_simulation=10000)
     # plot_St_list(St_list, dt)
     # print(monte_carlo(dt=0.0001, N_max=10, show=True, eps=0.0001))
     # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
