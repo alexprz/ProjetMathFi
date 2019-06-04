@@ -38,9 +38,14 @@ def simulate_St(dt):
     return np.cumprod(increases)
 
 def simulate_St_list(dt, N):
-    St_list = []
-    for _ in range(N):
-        St_list.append(simulate_St(dt))
+    n = int(T/dt)+1
+    St_list = np.zeros((N, n))
+
+    time0 = time()
+    for i in range(N):
+        St_list[i, :] = simulate_St(dt)
+
+    print('Simulation time : {}'.format(time()-time0))
     return St_list
 
 def plot_St(dt, N):
@@ -171,10 +176,10 @@ def convergence_speed_function_of_dt(dt_min, dt_max, N, eps):
 
 
 if __name__ == '__main__':
-    dt = 0.01
+    dt = 0.0001
     St = simulate_St(dt)
     print(payoff_down_and_out(St))
-    St_list = simulate_St_list(dt, 1000)
+    St_list = simulate_St_list(dt, 10000)
     print(stats_St_list(St_list, dt))
     # plot_St_list(St_list, dt)
     # print(monte_carlo(dt=0.0001, N_max=10, show=True, eps=0.0001))
