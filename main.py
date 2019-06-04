@@ -104,12 +104,15 @@ def payoff_down_and_out(St):
         return 0
     return max(St[-1]-K, 0)
 
+# def is_activated(St):
+#     n, = St.shape
+#     for k in range(n):
+#         if St[k] < H:
+#             return False
+#     return True
+
 def is_activated(St):
-    n, = St.shape
-    for k in range(n):
-        if St[k] < H:
-            return False
-    return True
+    return not (St<H).any()
 
 def monte_carlo(dt, N_max=100000, N_min=200, eps=None, show=False):
     payoffs = []
