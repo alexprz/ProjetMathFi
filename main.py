@@ -7,9 +7,9 @@ T = 1.
 r = 0.1
 mu = -0.05
 sigma = 0.2
-S0 = 100#50
-H = 80#30
-K = 100#50
+S0 = 50
+H = 30
+K = 50
 
 def compute_mean(new_value, n, previous_mean):
     return 1./n*((n-1)*previous_mean + new_value)
@@ -93,6 +93,7 @@ def stats_St_list(St_list, dt, H=H, show=False):
 
     stats['computation_time'] = time()-time0
     stats['mean_payoff'] = np.mean(payoffs)
+    stats['std_payoff'] = np.std(payoffs)
     stats['percent_activated'] = 100*stats['nb_activated']/stats['N']
 
     if show:
@@ -108,38 +109,51 @@ def payoff_down_and_out(St, H=H):
 def is_activated(St, H=H):
     return not (St<H).any()
 
-def monte_carlo(dt, N_max=100000, N_min=200, eps=None, show=False):
-    payoffs = []
-    St_list = []
+def monte_carlo(dt, N_max=100000, N_min=200, eps=None):
+    # payoffs = []
+    # St_list = []
     mean_n = -1
     std_n = 0
     count = 0
 
     while count < N_max:
         St = simulate_St(dt)
-        St_list.append(St)
+        # St_list.append(St)
         payoff = payoff_down_and_out(St)
-        payoffs.append(payoff)
+        # payoffs.append(payoff)
         mean_p = mean_n
         std_p = std_n
         # mean_n = 1/(count+1)*(count*mean_n + payoff)
         mean_n = compute_mean(payoff, count+1, mean_n)
         std_n = compute_std(payoff, count+1, std_p, mean_p)
-        var = np.var(payoffs, ddof=1)
+        # var = np.var(payoffs, ddof=1)
+        # print('{} {}'.format(std_n, var))
 
         count += 1
         # if count >= N_min and abs(mean_n - mean_p) < eps:
-        print('{} {} {}'.format(mean_n, std_n, 1.96*np.sqrt(std_n)/np.sqrt(count)))
+        print('{0:} {1:.2f} {2:.2f}'.format(count, mean_n, std_n))#, 1.96*np.sqrt(std_n)/np.sqrt(count)))
         # if count >= N_min and 1.96*np.sqrt(std_n)/np.sqrt(count) < eps:
-        if count >= N_min and eps != None and abs(mean_n - mean_p) < eps:
+        # if count >= N_min and eps != None and abs(mean_n - mean_p) < eps:
 
-            # print('Delta mean : {}'.format(abs(mean_n - mean_p)))
-            print('Error : {}'.format(1.96*np.sqrt(std_n)/np.sqrt(count)))
-            break
+        #     # print('Delta mean : {}'.format(abs(mean_n - mean_p)))
+        #     print('Error : {}'.format(1.96*np.sqrt(std_n)/np.sqrt(count)))
+        #     break
+    # var = np.var(payoffs, ddof=1)
+    # print('My var : {}'.format(std_n))
+    # print('True var : {}'.format(var))
+    # print('True var : {}'.format(np.std(payoffs)**2))
+    # print('My mean : {}'.format(mean_n))
+    # print('True mean : {}'.format(np.mean(payoffs)))
+    # print(stats_St_list(St_list, dt))
 
-    print(stats_St_list(St_list))
+    return mean_n, std_n
 
-    return mean_n, count
+def monte_carlo_fixed(dt, N_max=100000, S0=S0, H=H):
+    St_list = simulate_St_list(dt, N_max, S0=S0)
+    stats = stats_St_list(St_list, dt, H=H)
+
+    return stats
+
 
 def convergence_speed_function_of_dt(dt_min, dt_max, N, eps):
     X = np.linspace(dt_min, dt_max, N)
@@ -189,8 +203,8 @@ def payoff_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
 
 if __name__ == '__main__':
     dt = 0.01
-    St = simulate_St(dt)
-    print(payoff_down_and_out(St))
+    # St = simulate_St(dt)
+    # print(payoff_down_and_out(St))
     # St_list = simulate_St_list(dt, 1000)
     # print(stats_St_list(St_list, dt))
     # payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
@@ -200,3 +214,4 @@ if __name__ == '__main__':
     # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
     # print(monte_carlo(dt=0.1, N_max=20, show=True, eps=0.5))
     # convergence_speed_function_of_dt(0.01, 0.1, 10, eps=0.0001)
+    monte_carlo(dt=0.0001, N_max=1000000)
