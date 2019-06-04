@@ -7,7 +7,7 @@ r = 0.1
 mu = -0.05
 sigma = 0.2
 S0 = 50
-H = 40
+H = 30
 K = 50
 
 def compute_mean(new_value, n, previous_mean):
@@ -72,6 +72,21 @@ def plot_St_list(St_list, dt):
     plt.ylabel('Asset price')
     plt.show()
 
+def stats_St_list(St_list, dt):
+    stats = dict()
+    stats['N'] = len(St_list)
+    stats['Nb_activated'] = 0
+    stats['dt'] = dt
+    payoffs = []
+    for St in St_list:
+        if is_activated(St):
+            stats['Nb_activated'] += 1
+        payoffs.append(payoff_down_and_out(St))
+
+    stats['mean_payoff'] = np.mean(payoffs)
+    return stats
+
+
 # def payoff_down_and_out(St):
 #     n, = St.shape
 #     for k in range(n):
@@ -82,11 +97,6 @@ def plot_St_list(St_list, dt):
 
 def payoff_down_and_out(St):
     return int(not (St<H).any() == True)*max(St[-1]-K, 0)
-    for k in range(n):
-        if St[k] < H:
-            return 0
-
-    return max(St[-1]-K, 0)
 
 def is_activated(St):
     n, = St.shape
@@ -152,11 +162,13 @@ def convergence_speed_function_of_dt(dt_min, dt_max, N, eps):
 
 
 if __name__ == '__main__':
-    dt = 0.001
+    dt = 0.01
     St = simulate_St(dt)
-    # print(payoff_down_and_out(St))
-    # plot_St_list([St], dt)
-    # print(monte_carlo(dt=0.1, N_max=1000, show=False, eps=0.0001))
-    print(monte_carlo(dt=0.0001, N_max=1000, show=True))
+    print(payoff_down_and_out(St))
+    St_list = simulate_St_list(dt, 1000)
+    print(stats_St_list(St_list, dt))
+    # plot_St_list(St_list, dt)
+    # print(monte_carlo(dt=0.0001, N_max=10, show=True, eps=0.0001))
+    # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
     # print(monte_carlo(dt=0.1, N_max=20, show=True, eps=0.5))
     # convergence_speed_function_of_dt(0.01, 0.1, 10, eps=0.0001)
