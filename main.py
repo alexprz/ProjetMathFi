@@ -36,6 +36,12 @@ def simulate_St(dt):
 
     return np.cumprod(increases)
 
+def simulate_St_list(dt, N):
+    St_list = []
+    for _ in range(N):
+        St_list.append(simulate_St(dt))
+    return St_list
+
 def plot_St(dt, N):
 
     X = [k*dt for k in range(int(T/dt)+1)]
