@@ -93,28 +93,13 @@ def stats_St_list(St_list, dt):
 
     stats['computation_time'] = time()-time0
     stats['mean_payoff'] = np.mean(payoffs)
+    stats['percent_activated'] = 100*stats['nb_activated']/stats['N']
     return stats
-
-
-# def payoff_down_and_out(St):
-#     n, = St.shape
-#     for k in range(n):
-#         if St[k] < H:
-#             return 0
-
-#     return max(St[-1]-K, 0)
 
 def payoff_down_and_out(St):
     if (St<H).any() == True:
         return 0
     return max(St[-1]-K, 0)
-
-# def is_activated(St):
-#     n, = St.shape
-#     for k in range(n):
-#         if St[k] < H:
-#             return False
-#     return True
 
 def is_activated(St):
     return not (St<H).any()
