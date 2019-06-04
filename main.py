@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from time import time
 
 # Parameters
 T = 1.
@@ -75,14 +76,17 @@ def plot_St_list(St_list, dt):
 def stats_St_list(St_list, dt):
     stats = dict()
     stats['N'] = len(St_list)
-    stats['Nb_activated'] = 0
+    stats['nb_activated'] = 0
     stats['dt'] = dt
     payoffs = []
+
+    time0 = time()
     for St in St_list:
         if is_activated(St):
-            stats['Nb_activated'] += 1
+            stats['nb_activated'] += 1
         payoffs.append(payoff_down_and_out(St))
 
+    stats['computation_time'] = time()-time0
     stats['mean_payoff'] = np.mean(payoffs)
     return stats
 
@@ -96,7 +100,9 @@ def stats_St_list(St_list, dt):
 #     return max(St[-1]-K, 0)
 
 def payoff_down_and_out(St):
-    return int(not (St<H).any() == True)*max(St[-1]-K, 0)
+    if (St<H).any() == True:
+        return 0
+    return max(St[-1]-K, 0)
 
 def is_activated(St):
     n, = St.shape
