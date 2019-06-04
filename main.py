@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from time import time
+from scipy.stats import norm
 
 # Parameters
 T = 1.
@@ -8,7 +9,7 @@ r = 0.1
 mu = -0.05
 sigma = 0.2
 S0 = 50
-H = 45
+H = 40
 K = 50
 
 def compute_mean(new_value, n, previous_mean):
@@ -32,15 +33,15 @@ def simulate_St(dt, S0=S0, antithetic=False):
     # return St
 
     eps = np.random.normal(size=n)
-    increases = 1+mu*dt + sigma*np.sqrt(dt)*eps
-    # increases = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*eps)
+    # increases = 1+mu*dt + sigma*np.sqrt(dt)*eps
+    increases = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*eps)
     increases[0] = S0
 
     if not antithetic:
         return np.cumprod(increases)
 
-    increases_antithetic = 1+mu*dt + sigma*np.sqrt(dt)*(-eps)
-    # increases_antithetic = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*(-eps))
+    # increases_antithetic = 1+mu*dt + sigma*np.sqrt(dt)*(-eps)
+    increases_antithetic = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*(-eps))
     increases_antithetic[0] = S0
 
     return np.cumprod(increases), np.cumprod(increases_antithetic)
@@ -112,7 +113,7 @@ def stats_St_list(St_list, dt, H=H, show=False):
 def payoff_down_and_out(St, H=H):
     if (St<H).any() == True:
         return 0
-    return max(St[-1]-K, 0)
+    return max(St[-1]-K, 0)*np.exp(-r*T)
 
 def is_activated(St, H=H):
     return not (St<H).any()
@@ -147,8 +148,9 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None):
 
         count += 1
         # if count >= N_min and abs(mean_n - mean_p) < eps:
-        print('{0:} {1:.2f} {2:.2f} {3:.2f}'.format(count, mean_n, std_n, 1.96*np.sqrt(std_n)/np.sqrt(count)))
-        # if count >= N_min and 1.96*np.sqrt(std_n)/np.sqrt(count) < eps:
+        print('{0:} {1:.2f} {2:.2f} {3:.4f}'.format(count, mean_n, std_n, 1.96*np.sqrt(std_n)/np.sqrt(count)))
+        if 1.96*np.sqrt(std_n)/np.sqrt(count) < eps:
+            break
         # if count >= N_min and eps != None and abs(mean_n - mean_p) < eps:
 
         #     # print('Delta mean : {}'.format(abs(mean_n - mean_p)))
@@ -162,7 +164,7 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None):
     # print('True mean : {}'.format(np.mean(payoffs)))
     # print(stats_St_list(St_list, dt))
 
-    return mean_n, np.sqrt(std_n)
+    return mean_n, np.sqrt(std_n), count
 
 def monte_carlo_fixed(dt, N_max=100000, S0=S0, H=H):
     St_list = simulate_St_list(dt, N_max, S0=S0)
@@ -215,6 +217,47 @@ def payoff_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     # plt.title('Influence of H/S0 over mean payoff')
     plt.show()
 
+def convergence_function_of_dt(dt_min, dt_max, N, eps=0.01):
+    X = np.linspace(dt_min, dt_max, N)
+    Y = []
+
+    for dt in X:
+        mean, std, nb_iterations = monte_carlo(dt, N_max=10000000, eps=eps)
+        Y.append(nb_iterations)
+
+    plt.plot(X, Y)
+    plt.xlabel('dt')
+    plt.ylabel('Nb itérations')
+    plt.show()
+
+def analytic_price_down_and_out(S0=S0, H=H):
+    a = (H/S0)**(-1+2*r/(sigma)**2)
+    b = (H/S0)**(1+2*r/(sigma)**2)
+
+    alpha_p = r + sigma**2/2
+    alpha_m = r - sigma**2/2
+
+    d1 = (np.log(S0/K) + alpha_p*T)/(sigma*np.sqrt(T))
+    d2 = (np.log(S0/K) + alpha_m*T)/(sigma*np.sqrt(T))
+    d3 = (np.log(S0/H) + alpha_m*T)/(sigma*np.sqrt(T))
+    d4 = (np.log(S0/H) + alpha_m*T)/(sigma*np.sqrt(T))
+    d5 = (np.log(S0/H) - alpha_m*T)/(sigma*np.sqrt(T))
+    d6 = (np.log(S0/H) - alpha_p*T)/(sigma*np.sqrt(T))
+    d7 = (np.log(S0*K/(H**2)) - alpha_m*T)/(sigma*np.sqrt(T))
+    d8 = (np.log(S0*K/(H**2)) - alpha_p*T)/(sigma*np.sqrt(T))
+
+    n1 = norm.cdf(d1)
+    n2 = norm.cdf(d2)
+    n3 = norm.cdf(d3)
+    n4 = norm.cdf(d4)
+    n5 = norm.cdf(d5)
+    n6 = norm.cdf(d6)
+    n7 = norm.cdf(d7)
+    n8 = norm.cdf(d8)
+
+    P = K*np.exp(-r*T)*(n4-n2-a*(n7-n5))-S0*(n3-n1-b*(n8-n6))
+
+    return P
 
 
 if __name__ == '__main__':
@@ -223,7 +266,7 @@ if __name__ == '__main__':
     # St, St_antithetic = simulate_St(dt, antithetic=True)
     # plot_St_list([St, St_antithetic], dt)
     # print(payoff_down_and_out(St))
-    # St_list = simulate_St_list(dt, 10000)
+    # St_list = simulate_St_list(dt, 100000)
     # print(stats_St_list(St_list, dt))
     # payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
     # stats_function_of_dt(1, 0.0001, 200, N_simulation=10000)
@@ -232,4 +275,7 @@ if __name__ == '__main__':
     # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
     # print(monte_carlo(dt=0.1, N_max=20, show=True, eps=0.5))
     # convergence_speed_function_of_dt(0.01, 0.1, 10, eps=0.0001)
-    print(monte_carlo(dt=0.001, N_max=250000))
+    # print(monte_carlo(dt=0.001, N_max=250000))
+    # print(monte_carlo(dt=0.01, N_max=1000000, eps=0.005))
+    # convergence_function_of_dt(0.1, 0.001, 4, eps=0.01)
+    print(analytic_price_down_and_out())
