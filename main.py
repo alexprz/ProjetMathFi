@@ -20,7 +20,7 @@ def compute_std(new_value, n, previous_std, previous_mean):
         return new_value
     return (n-2)/(n-1)*previous_std+(previous_mean-new_mean)**2+1./(n-1)*(new_value-new_mean)**2
 
-def simulate_St(dt):
+def simulate_St(dt, S0=S0):
     n = int(T/dt)+1
     # St = np.zeros(n)
     # St[0] = S0
@@ -37,13 +37,13 @@ def simulate_St(dt):
 
     return np.cumprod(increases)
 
-def simulate_St_list(dt, N):
+def simulate_St_list(dt, N, S0=S0):
     n = int(T/dt)+1
     St_list = np.zeros((N, n))
 
     time0 = time()
     for i in range(N):
-        St_list[i, :] = simulate_St(dt)
+        St_list[i, :] = simulate_St(dt, S0=S0)
 
     print('Simulation time : {}'.format(time()-time0))
     return St_list
@@ -78,7 +78,7 @@ def plot_St_list(St_list, dt):
     plt.ylabel('Asset price')
     plt.show()
 
-def stats_St_list(St_list, dt):
+def stats_St_list(St_list, dt, H=H):
     stats = dict()
     stats['N'] = len(St_list)
     stats['nb_activated'] = 0
@@ -89,19 +89,19 @@ def stats_St_list(St_list, dt):
     for St in St_list:
         if is_activated(St):
             stats['nb_activated'] += 1
-        payoffs.append(payoff_down_and_out(St))
+        payoffs.append(payoff_down_and_out(St, H=H))
 
     stats['computation_time'] = time()-time0
     stats['mean_payoff'] = np.mean(payoffs)
     stats['percent_activated'] = 100*stats['nb_activated']/stats['N']
     return stats
 
-def payoff_down_and_out(St):
+def payoff_down_and_out(St, H=H):
     if (St<H).any() == True:
         return 0
     return max(St[-1]-K, 0)
 
-def is_activated(St):
+def is_activated(St, H=H):
     return not (St<H).any()
 
 def monte_carlo(dt, N_max=100000, N_min=200, eps=None, show=False):
@@ -174,15 +174,33 @@ def stats_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
     plt.title('Influence of dt over activation %')
     plt.show()
 
+def payoff_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
+    X = np.linspace(r_min, r_max, N)
+    Y = []
+
+    for r in X:
+        H = S0*r
+        St_list = simulate_St_list(dt, N_simulation, S0=S0)
+        stats = stats_St_list(St_list, dt, H=H)
+        print(stats['mean_payoff'])
+        Y.append(stats['mean_payoff'])
+
+    plt.plot(X, Y)
+    plt.xlabel('H/S0')
+    plt.ylabel('Mean payoff')
+    # plt.title('Influence of H/S0 over mean payoff')
+    plt.show()
+
 
 
 if __name__ == '__main__':
-    dt = 0.0001
+    dt = 0.01
     St = simulate_St(dt)
     print(payoff_down_and_out(St))
-    # St_list = simulate_St_list(dt, 10000)
+    # St_list = simulate_St_list(dt, 1000)
     # print(stats_St_list(St_list, dt))
-    stats_function_of_dt(0.1, 0.00001, 100, N_simulation=10000)
+    payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
+    # stats_function_of_dt(0.1, 0.00001, 100, N_simulation=10000)
     # plot_St_list(St_list, dt)
     # print(monte_carlo(dt=0.0001, N_max=10, show=True, eps=0.0001))
     # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
