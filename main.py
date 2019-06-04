@@ -7,9 +7,9 @@ T = 1.
 r = 0.1
 mu = -0.05
 sigma = 0.2
-S0 = 50
-H = 30
-K = 50
+S0 = 100#50
+H = 80#30
+K = 100#50
 
 def compute_mean(new_value, n, previous_mean):
     return 1./n*((n-1)*previous_mean + new_value)
@@ -78,7 +78,7 @@ def plot_St_list(St_list, dt):
     plt.ylabel('Asset price')
     plt.show()
 
-def stats_St_list(St_list, dt, H=H):
+def stats_St_list(St_list, dt, H=H, show=False):
     stats = dict()
     stats['N'] = len(St_list)
     stats['nb_activated'] = 0
@@ -94,6 +94,10 @@ def stats_St_list(St_list, dt, H=H):
     stats['computation_time'] = time()-time0
     stats['mean_payoff'] = np.mean(payoffs)
     stats['percent_activated'] = 100*stats['nb_activated']/stats['N']
+
+    if show:
+        plot_St_list(St_list, dt)
+
     return stats
 
 def payoff_down_and_out(St, H=H):
@@ -133,17 +137,7 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, show=False):
             print('Error : {}'.format(1.96*np.sqrt(std_n)/np.sqrt(count)))
             break
 
-    if show:
-        plot_St_list(St_list, dt)
-
-    nb_activated = 0
-    for St in St_list:
-        if is_activated(St):
-            nb_activated += 1
-
-    n = len(St_list)
-    print('Nb activated : {} ({}%)'.format(nb_activated, 100*nb_activated/n))
-    print('Nb deactivated : {} ({}%)'.format(n-nb_activated, 100*(n-nb_activated)/n))
+    print(stats_St_list(St_list))
 
     return mean_n, count
 
@@ -199,7 +193,7 @@ if __name__ == '__main__':
     print(payoff_down_and_out(St))
     # St_list = simulate_St_list(dt, 1000)
     # print(stats_St_list(St_list, dt))
-    payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
+    # payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
     # stats_function_of_dt(0.1, 0.00001, 100, N_simulation=10000)
     # plot_St_list(St_list, dt)
     # print(monte_carlo(dt=0.0001, N_max=10, show=True, eps=0.0001))
