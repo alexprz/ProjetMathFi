@@ -127,6 +127,15 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, show=False):
     if show:
         plot_St_list(St_list, dt)
 
+    nb_activated = 0
+    for St in St_list:
+        if is_activated(St):
+            nb_activated += 1
+
+    n = len(St_list)
+    print('Nb activated : {} ({}%)'.format(nb_activated, 100*nb_activated/n))
+    print('Nb deactivated : {} ({}%)'.format(n-nb_activated, 100*(n-nb_activated)/n))
+
     return mean_n, count
 
 def convergence_speed_function_of_dt(dt_min, dt_max, N, eps):
