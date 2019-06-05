@@ -137,7 +137,7 @@ def stats_St_list(St_list, dt, H=H, show=False):
     prices = np.array(payoffs)*np.exp(-r*T)
     stats['mean_price'] = np.mean(prices)
     stats['std_price'] = np.std(prices)
-    analytic_price = analytic_price_down_and_out()
+    analytic_price = analytical_price_down_and_out()
     stats['abs_error'] = abs(analytic_price - stats['mean_price'])
     stats['percent_activated'] = 100*stats['nb_activated']/stats['N']
 
@@ -160,7 +160,10 @@ def is_activated(St, H=H):
     '''
     return not (St<H).any()
 
-def analytic_call_vanilla(S0=S0, K=K):
+def analytical_call_vanilla(S0=S0, K=K):
+    '''
+        Calcule le prix d'un call européen vanille de manière explicite
+    '''
     d1 = (np.log(S0/K) + (r + (sigma**2)/2)*T)/(sigma*np.sqrt(T))
     d2 = d1 - sigma*np.sqrt(T)
 
@@ -169,12 +172,16 @@ def analytic_call_vanilla(S0=S0, K=K):
 
     return S0*n1 - K*np.exp(-r*T)*n2
 
-def analytic_price_down_and_out(S0=S0, H=H, K=K):
+def analytical_price_down_and_out(S0=S0, H=H, K=K):
+    '''
+        Calcule le prix d'un call barrière down and out
+    '''
+    # Calcul d'un call barrière down and in
     lbd = (r+(sigma**2)/2)/(sigma**2)
     x = (np.log(H**2/(S0*K))+(r-(sigma**2)/2)*T)/(sigma*np.sqrt(T))
-
     Cin =  S0*(H/S0)**(2*lbd)*norm.cdf(x) - K*np.exp(-r*T)*(H/S0)**(2*lbd-2)*norm.cdf(x-sigma*np.sqrt(T))
-    C = analytic_call_vanilla(S0=S0, K=K)
+    
+    C = analytical_call_vanilla(S0=S0, K=K)
     Cout = C - Cin
 
     return Cout
@@ -203,7 +210,7 @@ def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False
     count = 0
     activated = 0
 
-    analytic_price = analytic_price_down_and_out()
+    analytic_price = analytical_price_down_and_out()
 
     while count < N_max:
         # Calcul du prix d'une nouvelle simulation, selon si on utilise la réduction de variance ou non
@@ -267,7 +274,7 @@ def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False
     stats['mean_payoff'] = mean_n*np.exp(r*T)
     stats['mean_price'] = mean_n
     stats['std_price'] = np.sqrt(var_n)
-    analytic_price = analytic_price_down_and_out()
+    analytic_price = analytical_price_down_and_out()
     stats['abs_error'] = abs(analytic_price - stats['mean_price'])
 
     relative_error = 100.*abs(mean_n-analytic_price)/analytic_price
@@ -279,6 +286,9 @@ def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False
 
 
 def plot_function_of_dt(dt_min, dt_max, N, stat_name, ylabel='', N_simulation=1000, eps=None, analytic_criterion=False):
+    '''
+        Fonction générique pour tracer des graphiques en fonction du pas de discrétisation
+    '''
     X = np.geomspace(dt_min, dt_max, N)
     print(X)
     Y = []
@@ -294,18 +304,33 @@ def plot_function_of_dt(dt_min, dt_max, N, stat_name, ylabel='', N_simulation=10
     plt.show()
 
 def convergence_speed_function_of_dt(dt_min, dt_max, N, eps=0.01, analytic_criterion=False):
+    '''
+        Trace le nombre d'itérations de la méthode de MC en fonction de dt
+    '''
     plot_function_of_dt(dt_min, dt_max, N, 'nb_iterations', 'Nombre d\'itérations', N_simulation=10000000, eps=eps, analytic_criterion=analytic_criterion)
 
 def activation_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
+    '''
+        Trace le pourcentage d'activation de la méthode de MC en fonction de dt
+    '''
     plot_function_of_dt(dt_min, dt_max, N, 'percent_activated', 'Activation %', N_simulation=N_simulation)
 
 def price_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
+    '''
+        Trace le prix estimé par la méthode de MC en fonction de dt
+    '''
     plot_function_of_dt(dt_min, dt_max, N, 'mean_price', 'Price', N_simulation=N_simulation)
 
 def error_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
+    '''
+        Trace l'erreur absolue commise par la méthode de MC en fonction de dt
+    '''
     plot_function_of_dt(dt_min, dt_max, N, 'abs_error', 'Absolute error', N_simulation=N_simulation)
 
 def price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
+    '''
+        Trace le prix estimé par MC en fonction de l'importance relative de H par rapport à S0
+    '''
     X = np.linspace(r_min, r_max, N)
     Y1 = []
     Y2 = []
@@ -313,10 +338,10 @@ def price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
 
     for r in X:
         H = S0*r
-        price = analytic_price_down_and_out(S0=S0, H=H)
+        price = analytical_price_down_and_out(S0=S0, H=H)
         print(price)
         Y1.append(price)
-        Y2.append(analytic_call_vanilla(S0=S0, K=K))
+        Y2.append(analytical_call_vanilla(S0=S0, K=K))
         St_list = simulate_St_list(dt, N_simulation, S0=S0)
         stats = stats_St_list(St_list, dt, H=H)
         print(stats['mean_price'])
@@ -332,6 +357,9 @@ def price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     plt.show()
 
 def activation_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
+    '''
+        Trace le pourcentage d'option activées dans la méthode de MC en fonction de l'importance relative de H par rapport à S0
+    '''
     X = np.linspace(r_min, r_max, N)
     Y = []
 
@@ -351,6 +379,8 @@ def activation_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
 
 if __name__ == '__main__':
     # Paramètres
+    # Pour que l'exécution soit rapides, des valeurs faibles ont été volontairement remplies
+    # Les valeurs conseillées sont en commentaire
     dt = 0.001
     N_simulation = 100000 #100000
     eps = 0.03 #0.01
