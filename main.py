@@ -160,6 +160,25 @@ def is_activated(St, H=H):
     '''
     return not (St<H).any()
 
+def analytic_call_vanilla(S0=S0, K=K):
+    d1 = (np.log(S0/K) + (r + (sigma**2)/2)*T)/(sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+
+    n1 = norm.cdf(d1)
+    n2 = norm.cdf(d2)
+
+    return S0*n1 - K*np.exp(-r*T)*n2
+
+def analytic_price_down_and_out(S0=S0, H=H, K=K):
+    lbd = (r+(sigma**2)/2)/(sigma**2)
+    x = (np.log(H**2/(S0*K))+(r-(sigma**2)/2)*T)/(sigma*np.sqrt(T))
+
+    Cin =  S0*(H/S0)**(2*lbd)*norm.cdf(x) - K*np.exp(-r*T)*(H/S0)**(2*lbd-2)*norm.cdf(x-sigma*np.sqrt(T))
+    C = analytic_call_vanilla(S0=S0, K=K)
+    Cout = C - Cin
+
+    return Cout
+
 def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False, antithetic=True):
     '''
         Estime par la méthode de Monte Carlo le prix du call down and out (entre autre).
@@ -276,198 +295,15 @@ def plot_function_of_dt(dt_min, dt_max, N, stat_name, ylabel='', N_simulation=10
 
 def convergence_speed_function_of_dt(dt_min, dt_max, N, eps=0.01, analytic_criterion=False):
     plot_function_of_dt(dt_min, dt_max, N, 'nb_iterations', 'Nombre d\'itérations', N_simulation=10000000, eps=eps, analytic_criterion=analytic_criterion)
-    # X = np.geomspace(dt_min, dt_max, N)
-    # print(X)
-    # Y = []
-    # for dt in X:
-    #     stats = monte_carlo(dt, N_max=10000000, eps=eps, analytic_criterion=analytic_criterion)
-    #     Y.append(stats['nb_iterations'])
-
-    # plt.plot(X, Y)
-    # plt.xlabel('dt')
-    # plt.ylabel('Nb iterations')
-    # plt.show()
-
-# def stats_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
-#     X = np.linspace(dt_min, dt_max, N)
-#     Y = []
-
-#     for dt in X:
-#         St_list = simulate_St_list(dt, N_simulation)
-#         stats = stats_St_list(St_list, dt)
-#         print(stats['percent_activated'])
-#         Y.append(stats['percent_activated'])
-
-#     plt.plot(X, Y)
-#     plt.xlabel('dt')
-#     plt.ylabel('Percent activated')
-#     plt.title('Influence of dt over activation %')
-#     plt.show()
 
 def activation_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
     plot_function_of_dt(dt_min, dt_max, N, 'percent_activated', 'Activation %', N_simulation=N_simulation)
 
-
 def price_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
     plot_function_of_dt(dt_min, dt_max, N, 'mean_price', 'Price', N_simulation=N_simulation)
-    # X = np.geomspace(dt_min, dt_max, N)
-    # print(X)
-    # Y = []
-
-    # for dt in X:
-    #     St_list = simulate_St_list(dt, N_simulation)
-    #     stats = stats_St_list(St_list, dt)
-    #     print(stats['mean_price'])
-    #     Y.append(stats['mean_price'])
-    #     print(dt)
-
-    # plt.plot(X, Y)
-    # plt.xlabel('dt')
-    # plt.ylabel('Price')
-    # # plt.title('Influence of dt over activation %')
-    # plt.show()
-
 
 def error_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
     plot_function_of_dt(dt_min, dt_max, N, 'abs_error', 'Absolute error', N_simulation=N_simulation)
-    # X = np.geomspace(dt_min, dt_max, N)
-    # # X = np.linspace(dt_min, dt_max, N)
-    # print(X)
-    # Y = []
-
-    # for dt in X:
-    #     # St_list = simulate_St_list(dt, N_simulation)
-    #     # stats = stats_St_list(St_list, dt)
-    #     stats = monte_carlo(dt, N_max=N_simulation)
-    #     print(stats['abs_error'])
-    #     Y.append(stats['abs_error'])
-    #     print(dt)
-
-    # plt.plot(X, Y)
-    # plt.xlabel('dt')
-    # plt.ylabel('Absolute error')
-    # plt.xscale('log')
-    # # plt.title('Influence of dt over activation %')
-    # plt.show()
-
-# def payoff_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
-#     X = np.linspace(r_min, r_max, N)
-#     Y = []
-
-#     for r in X:
-#         H = S0*r
-#         St_list = simulate_St_list(dt, N_simulation, S0=S0)
-#         stats = stats_St_list(St_list, dt, H=H)
-#         print(stats['mean_payoff'])
-#         Y.append(stats['mean_payoff'])
-
-#     plt.plot(X, Y)
-#     plt.xlabel('H/S0')
-#     plt.ylabel('Mean payoff')
-#     # plt.title('Influence of H/S0 over mean payoff')
-#     plt.show()
-
-# def convergence_function_of_dt(dt_min, dt_max, N, eps=0.01, analytic_criterion=False):
-#     X = np.linspace(dt_min, dt_max, N)
-#     Y = []
-
-#     for dt in X:
-#         mean, std, nb_iterations, _ = monte_carlo(dt, N_max=10000000, eps=eps, analytic_criterion=analytic_criterion)
-#         Y.append(nb_iterations)
-
-#     plt.plot(X, Y)
-#     plt.xlabel('dt')
-#     plt.ylabel('Nb itérations')
-#     plt.show()
-
-# def analytic_price_down_and_out(S0=S0, H=H):
-#     a = (H/S0)**(-1+2*r/(sigma**2))
-#     b = (H/S0)**(1+2*r/(sigma**2))
-
-#     alpha_p = r + (sigma**2)/2
-#     alpha_m = r - (sigma**2)/2
-
-#     d1 = (np.log(S0/K) + alpha_p*T)/(sigma*np.sqrt(T))
-#     d2 = (np.log(S0/K) + alpha_m*T)/(sigma*np.sqrt(T))
-#     d3 = (np.log(S0/H) + alpha_m*T)/(sigma*np.sqrt(T))
-#     d4 = (np.log(S0/H) + alpha_m*T)/(sigma*np.sqrt(T))
-#     d5 = (np.log(S0/H) - alpha_m*T)/(sigma*np.sqrt(T))
-#     d6 = (np.log(S0/H) - alpha_p*T)/(sigma*np.sqrt(T))
-#     d7 = (np.log(S0*K/(H**2)) - alpha_m*T)/(sigma*np.sqrt(T))
-#     d8 = (np.log(S0*K/(H**2)) - alpha_p*T)/(sigma*np.sqrt(T))
-
-#     n1 = norm.cdf(d1)
-#     n2 = norm.cdf(d2)
-#     n3 = norm.cdf(d3)
-#     n4 = norm.cdf(d4)
-#     n5 = norm.cdf(d5)
-#     n6 = norm.cdf(d6)
-#     n7 = norm.cdf(d7)
-#     n8 = norm.cdf(d8)
-
-#     P = K*np.exp(-r*T)*(n4-n2-a*(n7-n5))-S0*(n3-n1-b*(n8-n6))
-
-#     C = P + S0 - K*np.exp(-r*T)
-
-#     return C
-
-# def analytic_price_down_and_out2(S0=S0, H=H):
-#     alpha_p = r + (sigma**2)/2
-#     alpha_m = r - (sigma**2)/2
-
-#     d1 = (np.log(S0/K) + alpha_p*T)/(sigma*np.sqrt(T))
-#     d2 = (np.log(S0/K) + alpha_m*T)/(sigma*np.sqrt(T))
-#     d7 = (np.log(H**2/(S0*K)) + alpha_p*T)/(sigma*np.sqrt(T))
-#     d8 = (np.log(H**2/(S0*K)) + alpha_m*T)/(sigma*np.sqrt(T))
-
-#     n1 = norm.cdf(d1)
-#     n2 = norm.cdf(d2)
-#     n7 = norm.cdf(d7)
-#     n8 = norm.cdf(d8)
-    
-#     C=S0*n1-K*np.exp(-r*T)*n2-H*(S0/H)**(-2*r/sigma**2)*n7-(S0/H)**(1-2*r/sigma**2)*K*np.exp(-r*T)*n8
-
-#     return C
-
-# def analytic_price_down_and_out3(S0=S0, H=H):
-#     nu=np.sqrt(sigma/T)
-#     alpha_p = r + (nu**2)/2
-#     alpha_m = r - (nu**2)/2
-    
-    
-
-#     d1 = (np.log(S0/K) + alpha_p*T)/(nu*np.sqrt(T))
-#     d2 = (np.log(S0/K) + alpha_m*T)/(nu*np.sqrt(T))
-#     d7 = (np.log(H**2/(S0*K)) + alpha_p*T)/(nu*np.sqrt(T))
-#     d8 = (np.log(H**2/(S0*K)) + alpha_m*T)/(nu*np.sqrt(T))
-
-#     n1 = norm.cdf(d1)
-#     n2 = norm.cdf(d2)
-#     n7 = norm.cdf(d7)
-#     n8 = norm.cdf(d8)
-    
-#     C=S0*n1-K*np.exp(-r*T)*n2-H*(S0/H)**(-2*r/sigma**2)*n7-(S0/H)**(1-2*r/sigma**2)*K*np.exp(-r*T)*n8
-
-#     return C
-
-def analytic_price_down_and_out(S0=S0, H=H, K=K):
-    lbd = (r+(sigma**2)/2)/(sigma**2)
-    x = (np.log(H**2/(S0*K))+(r-(sigma**2)/2)*T)/(sigma*np.sqrt(T))
-
-    Cin =  S0*(H/S0)**(2*lbd)*norm.cdf(x) - K*np.exp(-r*T)*(H/S0)**(2*lbd-2)*norm.cdf(x-sigma*np.sqrt(T))
-    C = analytic_call_vanilla(S0=S0, K=K)
-    Cout = C - Cin
-
-    return Cout
-
-def analytic_call_vanilla(S0=S0, K=K):
-    d1 = (np.log(S0/K) + (r + (sigma**2)/2)*T)/(sigma*np.sqrt(T))
-    d2 = d1 - sigma*np.sqrt(T)
-
-    n1 = norm.cdf(d1)
-    n2 = norm.cdf(d2)
-
-    return S0*n1 - K*np.exp(-r*T)*n2
 
 def price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     X = np.linspace(r_min, r_max, N)
@@ -491,7 +327,7 @@ def price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     plt.plot(X, Y2, label='Analytical vanilla', linestyle='--', color='green')
     plt.xlabel('H/S0')
     plt.ylabel('Price')
-    # plt.title('Influence of H/S0 over mean payoff')
+    plt.title('Influence of H/S0 over call price')
     plt.legend()
     plt.show()
 
@@ -509,40 +345,16 @@ def activation_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     plt.plot(X, Y)
     plt.xlabel('H/S0')
     plt.ylabel('Activation %')
-    # plt.title('Influence of H/S0 over mean payoff')
-    # plt.legend()
+    plt.title('Influence of H/S0 over activation %')
     plt.show()
 
 
 if __name__ == '__main__':
-    dt = 0.001
-    # St = simulate_St(dt)
-    # St, St_antithetic = simulate_St(dt, antithetic=True)
-    # plot_St_list([St, St_antithetic], dt)
-    # print(payoff_down_and_out(St))
-    # St_list = simulate_St_list(dt, 5)
-    # print(stats_St_list(St_list, dt))
-    # payoff_function_of_H(0, 1, 100, dt, N_simulation=100000)
-    # stats_function_of_dt(1, 0.0001, 200, N_simulation=10000)
-    # plot_St_list(St_list, dt)
-    # print(monte_carlo(dt=0.0001, N_max=250000, show=True))
-    # print(monte_carlo(dt=0.0001, N_max=1000, show=False))
-    # print(monte_carlo(dt=0.1, N_max=20, show=True, eps=0.5))
-    # convergence_speed_function_of_dt(0.01, 0.1, 10, eps=0.0001)
-    # print(monte_carlo(dt=0.001, N_max=250000, eps=0.01, analytic_criterion=False))
-    # print(monte_carlo(dt=0.01, N_max=1000000, eps=0.005))
-    # convergence_function_of_dt(0.001, 0.1, 100, eps=0.01, analytic_criterion=False)
-    # convergence_speed_function_of_dt(0.001, 0.1, 100, eps=0.01, analytic_criterion=False)
-    # print(analytic_price_down_and_out())
-    # price_function_of_H(0, 1, 100, dt, N_simulation=100000)
-    # activation_function_of_H(0, 1, 100, dt, N_simulation=100000)
-    # price_function_of_dt(0.00001, 0.1, 10, N_simulation=100000)
-    # error_function_of_dt(0.00001, 1, 10, N_simulation=200000)
-
+    # Paramètres
     dt = 0.001
     N_simulation = 100000 #100000
     eps = 0.03 #0.01
-    
+
 
     St_list = simulate_St_list(dt, 5)
     # plot_St_list(St_list, dt, H=45)
@@ -558,5 +370,5 @@ if __name__ == '__main__':
     # convergence_speed_function_of_dt(0.0001, 0.1, 20, eps=eps, analytic_criterion=False)
 
     # price_function_of_dt(0.0001, 1, 10, N_simulation=N_simulation)
-    activation_function_of_dt(0.0001, 1, 10, N_simulation=N_simulation)
+    activation_function_of_dt(0.00001, 1, 10, N_simulation=N_simulation)
 
