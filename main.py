@@ -41,7 +41,8 @@ def simulate_St(dt, S0=S0, antithetic=False):
         Via l'attribut antithetic, elle permet de renvoyer une deuxième trajectoire : la trajectoire antithétique.
     '''
 
-    n = int(T/dt)+1 # Nombre de tirages
+    # n = int(T/dt)+1 # Nombre de tirages
+    n = int(np.ceil(T/dt)) # Nombre de tirages
 
     # Tirage de n valeurs selon la loi N(0, 1)
     eps = np.random.normal(size=n)
@@ -74,7 +75,8 @@ def simulate_St_list(dt, N, S0=S0):
     '''
         Permet de simuler N strajectoires et les renvoie dans un tableau numpy
     '''
-    n = int(T/dt)+1
+    # n = int(T/dt)+1
+    n = int(np.ceil(T/dt))
     St_list = np.zeros((N, n))
 
     time0 = time()
@@ -95,7 +97,8 @@ def plot_St_list(St_list, dt, H=H, K=K):
         Affiche len(St_list) trajectoires données dans St_list
     '''
 
-    n = int(T/dt)+1
+    # n = int(T/dt)+1
+    n = int(np.ceil(T/dt))
     X = [k*dt for k in range(n)]
     for St in St_list:
         if is_activated(St, H=H):
@@ -186,7 +189,7 @@ def analytical_price_down_and_out(S0=S0, H=H, K=K):
 
     return Cout
 
-def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False, antithetic=True):
+def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False, antithetic=True, N_min=100):
     '''
         Estime par la méthode de Monte Carlo le prix du call down and out (entre autre).
 
@@ -248,9 +251,9 @@ def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False
         
 
         # Critères d'arrêt
-        if count > 1 and analytic_criterion and eps != None and absolute_error < eps:
+        if count >= N_min and analytic_criterion and eps != None and absolute_error < eps:
             break
-        if count > 1 and not analytic_criterion and eps != None and interval_bound < eps:
+        if count >= N_min and not analytic_criterion and eps != None and interval_bound < eps:
             break
 
     # Tracé de la moyenne et de l'écart type en fonction du nombre d'itérations
@@ -297,10 +300,13 @@ def plot_function_of_dt(dt_min, dt_max, N, stat_name, ylabel='', N_simulation=10
         stats = monte_carlo(dt, N_max=N_simulation, eps=eps, analytic_criterion=analytic_criterion)
         Y.append(stats[stat_name])
 
-    plt.plot(X, Y)
+    plt.plot(X, Y, label='Monte Carlo')
+    # plt.plot(X, analytical_price_down_and_out()*np.ones(N), label='Analytical')
     plt.xlabel('dt')
     plt.ylabel(ylabel)
     plt.xscale('log')
+    # plt.yscale('log')
+    # plt.legend()
     plt.show()
 
 def convergence_speed_function_of_dt(dt_min, dt_max, N, eps=0.01, analytic_criterion=False):
@@ -326,6 +332,12 @@ def error_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
         Trace l'erreur absolue commise par la méthode de MC en fonction de dt
     '''
     plot_function_of_dt(dt_min, dt_max, N, 'abs_error', 'Absolute error', N_simulation=N_simulation)
+
+def relative_error_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
+    '''
+        Trace l'erreur relative commise par la méthode de MC en fonction de dt
+    '''
+    plot_function_of_dt(dt_min, dt_max, N, 'relative_error', 'Relative error (%)', N_simulation=N_simulation)
 
 def price_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
     '''
@@ -379,26 +391,27 @@ def activation_function_of_H(r_min, r_max, N, dt, N_simulation=1000):
 
 if __name__ == '__main__':
     # Paramètres
-    # Pour que l'exécution soit rapides, des valeurs faibles ont été volontairement remplies
+    # Pour que l'exécution soit rapide, des valeurs faibles ont été volontairement utilisées
     # Les valeurs conseillées sont en commentaire
     dt = 0.001
-    N_simulation = 100000 #100000
-    eps = 0.03 #0.01
+    N_simulation = 1000 #100000
+    eps = 0.5 #0.01
 
 
     St_list = simulate_St_list(dt, 5)
-    # plot_St_list(St_list, dt, H=45)
+    plot_St_list(St_list, dt, H=45)
     print(stats_St_list(St_list, dt))
-    # print(monte_carlo(dt, N_max=100000, show=True, antithetic=False))
-    # print(monte_carlo(dt, N_max=100000, show=True, antithetic=True))
+    print(monte_carlo(dt, N_max=N_simulation, show=True, antithetic=False))
+    print(monte_carlo(dt, N_max=N_simulation, show=True, antithetic=True))
 
-    # price_function_of_H(0, 1, 100, dt, N_simulation=N_simulation)
-    # activation_function_of_H(0, 1, 100, dt, N_simulation=N_simulation)
+    price_function_of_H(0, 1, 100, dt, N_simulation=N_simulation)
+    activation_function_of_H(0, 1, 100, dt, N_simulation=N_simulation)
 
 
-    # error_function_of_dt(0.00001, 1, 10, N_simulation=N_simulation)
-    # convergence_speed_function_of_dt(0.0001, 0.1, 20, eps=eps, analytic_criterion=False)
+    error_function_of_dt(0.00001, 1, 10, N_simulation=N_simulation)
+    relative_error_function_of_dt(0.00001, 1, 10, N_simulation=N_simulation)
+    convergence_speed_function_of_dt(0.0001, 0.1, 20, eps=eps, analytic_criterion=False)
 
-    # price_function_of_dt(0.0001, 1, 10, N_simulation=N_simulation)
+    price_function_of_dt(0.00001, 1, 10, N_simulation=N_simulation)
     activation_function_of_dt(0.00001, 1, 10, N_simulation=N_simulation)
 
