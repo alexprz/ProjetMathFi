@@ -13,40 +13,67 @@ H = 40
 K = 50
 
 def compute_mean(new_value, n, previous_mean):
+    '''
+        Etant donné la moyenne (previous_mean) d'un ensemble de n-1 éléments,
+        renvoie la moyenne de l'ensemble constitué des n-1 éléments auxquel a été ajouté new_value.
+        new_value est donc la n-ième valeur de l'ensemble.
+        Utile pour calculer la moyenne au fil des itérations dans la méthode de Monte Carlo.
+    '''
     return 1./n*((n-1)*previous_mean + new_value)
 
-def compute_std(new_value, n, previous_std, previous_mean):
+def compute_var(new_value, n, previous_var, previous_mean):
+    '''
+        Etant donné la variance (previous_var) et la moyenne (previous_mean) d'un ensemble de n-1 éléments,
+        renvoie la variance de l'ensemble constitué des n-1 éléments auxquel a été ajouté new_value.
+        new_value est donc la n-ième valeur de l'ensemble.
+        Utile pour calculer la variance au fil des itérations dans la méthode de Monte Carlo.
+    '''
     new_mean = compute_mean(new_value, n, previous_mean)
     if n == 1:
-        return new_value
-    return (n-2)/(n-1)*previous_std+(previous_mean-new_mean)**2+1./(n-1)*(new_value-new_mean)**2
+        return 0#new_value
+    return (n-2)/(n-1)*previous_var+(previous_mean-new_mean)**2+1./(n-1)*(new_value-new_mean)**2
 
 def simulate_St(dt, S0=S0, antithetic=False):
-    n = int(T/dt)+1
-    # St = np.zeros(n)
-    # St[0] = S0
+    '''
+        Fonction principale sur laquelle se base toute l'étude.
+        Permet de simuler une trajectoire de l'actif risqué étant donné un pas de discrétisation dt
+        et un jeu de paramètres.
+        Via l'attribut antithetic, elle permet de renvoyer une deuxième trajectoire : la trajectoire antithétique.
+    '''
 
-    # for k in range(1, n):
-    #     eps = np.random.normal()
-    #     St[k] = St[k-1]*(1+mu*dt + np.sqrt(dt)*eps)
+    n = int(T/dt)+1 # Nombre de tirages
 
-    # return St
-
+    # Tirage de n valeurs selon la loi N(0, 1)
     eps = np.random.normal(size=n)
-    # increases = 1+r*dt + sigma*np.sqrt(dt)*eps
+
+    # Calculs des accroissements multiplicateurs
+    # Schéma 1
     increases = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*eps)
+    # Schéma 2
+    # increases = 1+r*dt + sigma*np.sqrt(dt)*eps
+    
     increases[0] = S0
 
+    # 1 seule trajectoire
     if not antithetic:
         return np.cumprod(increases)
 
-    # increases_antithetic = 1+r*dt + sigma*np.sqrt(dt)*(-eps)
+    # Pour obtenir la trajectoire antithétique, il suffit de prendre l'opposé de eps
+    # Calculs des accroissements multiplicateurs
+    # Schéma 1
     increases_antithetic = np.exp((r-(sigma**2)/2)*dt + sigma*np.sqrt(dt)*(-eps))
+    # Schéma 2
+    # increases_antithetic = 1+r*dt + sigma*np.sqrt(dt)*(-eps)
+
     increases_antithetic[0] = S0
 
+    # 1 trajectoire et sa trajectoire antithétique
     return np.cumprod(increases), np.cumprod(increases_antithetic)
 
 def simulate_St_list(dt, N, S0=S0):
+    '''
+        Permet de simuler N strajectoires et les renvoie dans un tableau numpy
+    '''
     n = int(T/dt)+1
     St_list = np.zeros((N, n))
 
@@ -57,28 +84,27 @@ def simulate_St_list(dt, N, S0=S0):
     print('Simulation time : {}'.format(time()-time0))
     return St_list
 
-def plot_St(dt, N):
+def plot_St(St, dt, H=H, K=K):
+    '''
+        Affiche une trajectoire donnée St
+    '''
+    plot_St_list([St], dt, H=H, K=K)
 
-    X = [k*dt for k in range(int(T/dt)+1)]
-    for k in range(N):
-        St = simulate_St(dt)
-        plt.plot(X, St)
+def plot_St_list(St_list, dt, H=H, K=K):
+    '''
+        Affiche len(St_list) trajectoires données dans St_list
+    '''
 
-
-    plt.xlabel('t')
-    plt.ylabel('Asset price')
-    plt.show()
-
-def plot_St_list(St_list, dt):
     n = int(T/dt)+1
     X = [k*dt for k in range(n)]
     for St in St_list:
-        if is_activated(St):
+        if is_activated(St, H=H):
             plt.plot(X, St, c='green', linewidth=0.5)
         else:
             plt.plot(X, St, c='red', linewidth=0.5)
 
 
+    # Barrière et Strike
     plt.plot(X, H*np.ones(n), c='red', linestyle='dashed', linewidth=2)
     plt.plot(X, K*np.ones(n), c='yellow', linestyle='dashed', linewidth=2)
 
@@ -88,6 +114,11 @@ def plot_St_list(St_list, dt):
     plt.show()
 
 def stats_St_list(St_list, dt, H=H, show=False):
+    '''
+        Étant donné un ensemble de trajectoires St_list, renvoie un dictionnaire stats
+        contenant des informations comme : le prix moyen, l'écart type, le nombre d'options activées...
+        Si show==True affiche les trajectoires
+    '''
     stats = dict()
     stats['N'] = len(St_list)
     stats['nb_activated'] = 0
@@ -116,18 +147,38 @@ def stats_St_list(St_list, dt, H=H, show=False):
     return stats
 
 def payoff_down_and_out(St, H=H):
+    ''' 
+        Calcule le payoff d'un call down and out suivant la trajectoire St
+    '''
     if (St<H).any() == True:
         return 0
-    return max(St[-1]-K, 0)#*np.exp(-r*T)
+    return max(St[-1]-K, 0)
 
 def is_activated(St, H=H):
+    '''
+        Détermine si l'option down and out suivant la trajectoire St est activée ou non
+    '''
     return not (St<H).any()
 
-def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False, show=False):
+def monte_carlo(dt, N_max=100000, eps=None, analytic_criterion=False, show=False, antithetic=False):
+    '''
+        Estime par la méthode de Monte Carlo le prix du call down and out (entre autre).
+
+        N_max : Nombre de simulations maximal
+        eps :   si eps==None, la méthode de MC s'arrête à N_max
+                sinon, sert pour le critère de convergence
+        analytic_criterion :
+            si True, la méthode de MC s'arrête lorsque l'erreur absolue avec la valeur exacte est inférieure à eps
+            si False, le critère utilisé est celui de l'intervalle asymptotique à 95% : 1.96sigma/sqrt(n) < eps
+        show : permet d'afficher l'évolution de la moyenne et l'écart type en fonction du nombre d'itérations
+        antithetic : si True utilise la méthode de réduction de variance par variable antithétique
+    '''
     # payoffs = []
     # St_list = []
-    # means = []
-    # stds = []
+    means = []
+    stds = []
+
+    # Sert pour stocker la moyenne, l'écart type et le nombre d'itérations.
     mean_n = 0
     var_n = 0
     count = 0
@@ -135,68 +186,60 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False,
     analytic_price = analytic_price_down_and_out4()
 
     while count < N_max:
-        St, St_antithetic = simulate_St(dt, antithetic=True)
-        # St = simulate_St(dt)
-        # St_list.append(St)
-        price = payoff_down_and_out(St)*np.exp(-r*T)
-        price_antithetic = payoff_down_and_out(St_antithetic)*np.exp(-r*T)
-        # payoffs.append(payoff)
-        # mean_n = 1/(count+1)*(count*mean_n + payoff)
+        # Calcul du prix d'une nouvelle simulation, selon si on utilise la réduction de variance ou non
+        if antithetic:
+            St, St_antithetic = simulate_St(dt, antithetic=True)
+            price = payoff_down_and_out(St)*np.exp(-r*T)
+            price_antithetic = payoff_down_and_out(St_antithetic)*np.exp(-r*T)
+
+            price = (price+price_antithetic)/2.
+        else:
+            St = simulate_St(dt, antithetic=False)
+            price = payoff_down_and_out(St)*np.exp(-r*T)
+
+        # Calcul récurssif de la moyenne et la variance
         mean_p = mean_n
         var_p = var_n
-        # mean_n = compute_mean(payoff, count+1, mean_n)
-        # std_n = compute_std(payoff, count+1, std_p, mean_p)
-        mean_n = compute_mean((price+price_antithetic)/2., count+1, mean_n)
-        var_n = compute_std((price+price_antithetic)/2., count+1, var_p, mean_p)
-        # means.append(mean_n)
-        # stds.append(np.sqrt(std_n))
-        # count += 1
-        # mean_p = mean_n
-        # std_p = std_n
-        # mean_n = compute_mean(payoff_antithetic, count+1, mean_n)
-        # std_n = compute_std(payoff_antithetic, count+1, std_p, mean_p)
-        # var = np.var(payoffs, ddof=1)
-        # print('{} {}'.format(std_n, var))
+        mean_n = compute_mean(price, count+1, mean_n)
+        var_n = compute_var(price, count+1, var_p, mean_p)
+
+        # Stocké uniquement pour l'affichage
+        if show:
+            means.append(mean_n)
+            stds.append(np.sqrt(var_n))
 
         count += 1
-        # if count >= N_min and abs(mean_n - mean_p) < eps:
+
+        # Calcul des différentes bornes des critères d'arrêts
         relative_error = 100*abs(mean_n-analytic_price)/analytic_price
         absolute_error = abs(mean_n-analytic_price)
-        print('{0:} {1:.2f} {2:.2f} {3:.4f} {4:.6f}'.format(count, mean_n, var_n, 1.96*np.sqrt(var_n)/np.sqrt(count), absolute_error))
-        if analytic_criterion and absolute_error < eps:
+        interval_bound = 1.96*np.sqrt(var_n)/np.sqrt(count)
+        print('{0:} {1:} {2:.2f} {3:.2f} {4:.4f} {5:.6f}'.format(dt, count, mean_n, var_n, interval_bound, absolute_error))
+        
+
+        # Critères d'arrêt
+        if analytic_criterion and eps != None and absolute_error < eps:
             break
-        if not analytic_criterion and eps != None and 1.96*np.sqrt(var_n)/np.sqrt(count) < eps:
+        if not analytic_criterion and eps != None and interval_bound < eps:
             break
-        # if count >= N_min and eps != None and abs(mean_n - mean_p) < eps:
 
-        #     # print('Delta mean : {}'.format(abs(mean_n - mean_p)))
-        #     print('Error : {}'.format(1.96*np.sqrt(std_n)/np.sqrt(count)))
-        #     break
-    # var = np.var(payoffs, ddof=1)
-    # print('My var : {}'.format(std_n))
-    # print('True var : {}'.format(var))
-    # print('True var : {}'.format(np.std(payoffs)**2))
-    # print('My mean : {}'.format(mean_n))
-    # print('True mean : {}'.format(np.mean(payoffs)))
-    # print(stats_St_list(St_list, dt))
+    # Tracé de la moyenne et de l'écart type en fonction du nombre d'itérations
+    if show:
+        X = range(len(means))
+        plt.plot(X, means, label='Monte Carlo')
+        plt.plot(X, analytic_price*np.ones(len(means)), label='Analytical')
+        plt.xlabel('Nombre d\'itérations')
+        plt.ylabel('Prix')
+        plt.legend()
+        plt.show()
 
-    # if show:
-    #     X = range(len(means))
-    #     plt.plot(X, means, label='Monte Carlo')
-    #     plt.plot(X, analytic_price*np.ones(len(means)), label='Analytical')
-    #     plt.xlabel('Nombre d\'itérations')
-    #     plt.ylabel('Prix')
-    #     plt.legend()
-    #     plt.show()
+        X = range(len(stds))
+        plt.plot(X, stds)
+        plt.xlabel('Nombre d\'itérations')
+        plt.ylabel('Écart type')
+        plt.show()
 
-    #     X = range(len(stds))
-    #     plt.plot(X, stds)
-    #     plt.xlabel('Nombre d\'itérations')
-    #     plt.ylabel('Écart type')
-    #     plt.show()
-
-    # print(means[0])
-
+    # Stockage des informations dans stats
     stats = dict()
     stats['mean_payoff'] = mean_n*np.exp(r*T)
     stats['mean_price'] = mean_n
@@ -207,15 +250,8 @@ def monte_carlo(dt, N_max=100000, N_min=200, eps=None, analytic_criterion=False,
     relative_error = 100*abs(mean_n-analytic_price)/analytic_price
     stats['relative_error'] = relative_error
     stats['nb_iterations'] = count
-    # return mean_n, np.sqrt(std_n), count, absolute_error
-    return stats
-
-def monte_carlo_fixed(dt, N_max=100000, S0=S0, H=H):
-    St_list = simulate_St_list(dt, N_max, S0=S0)
-    stats = stats_St_list(St_list, dt, H=H)
 
     return stats
-
 
 def convergence_speed_function_of_dt(dt_min, dt_max, N, eps=0.01, analytic_criterion=False):
     X = np.geomspace(dt_min, dt_max, N)
@@ -283,6 +319,7 @@ def error_function_of_dt(dt_min, dt_max, N, N_simulation=1000):
     plt.plot(X, Y)
     plt.xlabel('dt')
     plt.ylabel('Absolute error')
+    plt.xscale('log')
     # plt.title('Influence of dt over activation %')
     plt.show()
 
@@ -468,9 +505,9 @@ if __name__ == '__main__':
     # print(monte_carlo(dt=0.001, N_max=250000, eps=0.01, analytic_criterion=False))
     # print(monte_carlo(dt=0.01, N_max=1000000, eps=0.005))
     # convergence_function_of_dt(0.001, 0.1, 100, eps=0.01, analytic_criterion=False)
-    convergence_speed_function_of_dt(0.001, 0.1, 100, eps=0.01, analytic_criterion=False)
+    # convergence_speed_function_of_dt(0.001, 0.1, 100, eps=0.01, analytic_criterion=False)
     # print(analytic_price_down_and_out())
     # analytic_price_function_of_H(0, 1, 100, dt, N_simulation=100000)
     # activation_function_of_H(0, 1, 100, dt, N_simulation=100000)
     # price_function_of_dt(0.00001, 0.1, 10, N_simulation=100000)
-    # error_function_of_dt(0.00001, 0.1, 5, N_simulation=100000)
+    error_function_of_dt(0.00001, 1, 10, N_simulation=10000)
